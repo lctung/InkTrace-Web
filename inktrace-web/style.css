@@ -1,0 +1,1604 @@
+@font-face {
+  font-family: InkTraceGuide;
+  src: url('fonts/noto_sans_tc_thin.ttf') format('truetype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --bg: #f5f5f6;
+  --surface: #fff;
+  --ink: #212121;
+  --muted: #757575;
+  --line: #e5e5e8;
+  --blue: #1976d2;
+  --blue-bg: #e3f2fd;
+  --on-blue: #fff;
+  --undo-bg: #f6e6c6;
+  --undo: #805a14;
+  --clear-bg: #f5dde0;
+  --clear: #a34454;
+  --done-bg: #dcede6;
+  --done: #306b58;
+  font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  font-synthesis: none;
+}
+
+:root[data-theme=dark] {
+  color-scheme: dark;
+  --bg: #121212;
+  --surface: #1e1e1e;
+  --ink: #e0e0e0;
+  --muted: #aaa;
+  --line: #363636;
+  --blue: #64b5f6;
+  --blue-bg: #00325a;
+  --on-blue: #121212;
+  --undo-bg: #493a21;
+  --undo: #f1cf86;
+  --clear-bg: #4a2d32;
+  --clear: #f0b4be;
+  --done-bg: #23433d;
+  --done: #a8d7c2;
+}
+
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme=light]) {
+    color-scheme: dark;
+    --bg: #121212;
+    --surface: #1e1e1e;
+    --ink: #e0e0e0;
+    --muted: #aaa;
+    --line: #363636;
+    --blue: #64b5f6;
+    --blue-bg: #00325a;
+    --on-blue: #121212;
+    --undo-bg: #493a21;
+    --undo: #f1cf86;
+    --clear-bg: #4a2d32;
+    --clear: #f0b4be;
+    --done-bg: #23433d;
+    --done: #a8d7c2;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+a {
+  color: var(--blue);
+  text-decoration: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #c99751;
+  outline-offset: 3px;
+}
+
+svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.topbar {
+  max-width: 1180px;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.brand > span {
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: var(--blue);
+  color: var(--on-blue);
+  width: 40px;
+  height: 40px;
+  font-family: serif;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 22px;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 46px;
+}
+
+.primary {
+  background: var(--blue);
+  color: var(--on-blue);
+}
+
+.secondary {
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+
+.outline {
+  background: var(--surface);
+  color: var(--muted);
+  border-color: var(--line);
+}
+
+.undo {
+  background: var(--undo-bg);
+  color: var(--undo);
+}
+
+.clear {
+  background: var(--clear-bg);
+  color: var(--clear);
+}
+
+.text-button {
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  padding: 10px 0;
+  font-size: 13px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.button:not(:disabled):hover {
+  filter: brightness(.96);
+}
+
+#connection-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+#connection-dot.connected {
+  background: #53a77d;
+}
+
+main {
+  max-width: 1060px;
+  margin: auto;
+  padding: 28px 24px 40px;
+}
+
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 22px;
+}
+
+h1 {
+  font-size: 25px;
+  margin: 0;
+  font-weight: 650;
+}
+
+h2 {
+  font-size: 21px;
+  margin: 0;
+}
+
+.search-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0 16px;
+  margin-bottom: 22px;
+  color: var(--muted);
+}
+
+.search-label input {
+  border: 0;
+  margin: 0;
+  background: transparent;
+  width: 100%;
+  padding: 15px 0;
+  outline: 0;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.papers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.chapter {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--surface);
+  padding: 21px;
+}
+
+.chapter-main {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  display: flex;
+  text-align: left;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+}
+
+.chapter-icon {
+  width: 54px;
+  height: 54px;
+  background: var(--blue-bg);
+  color: var(--blue);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 15px;
+  font-size: 28px;
+}
+
+.chapter-title {
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.chapter-info {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.chapter progress {
+  margin: 18px 0 12px;
+}
+
+.chapter-footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.chapter-footer span {
+  flex: 1;
+}
+
+.chapter-footer button {
+  padding: 5px 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.chapter.complete {
+  background: var(--blue-bg);
+}
+
+.empty {
+  text-align: center;
+  padding: 70px 0;
+  color: var(--muted);
+}
+
+.editor-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 17px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+#paper-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.writing-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  padding: 32px 40px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.counter {
+  font-size: 16px;
+  color: var(--blue);
+}
+
+progress {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 6px;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--blue-bg);
+  accent-color: var(--blue);
+}
+
+progress::-webkit-progress-bar {
+  background: var(--blue-bg);
+}
+
+progress::-webkit-progress-value {
+  background: var(--blue);
+  border-radius: 10px;
+}
+
+progress::-moz-progress-bar {
+  background: var(--blue);
+}
+
+#completion {
+  margin: 28px 0 24px;
+}
+
+.characters {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 11px;
+  margin-bottom: 28px;
+}
+
+.char {
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 12px;
+  font-size: 27px;
+  position: relative;
+  padding: 0;
+}
+
+.char.done {
+  background: var(--done-bg);
+  color: var(--done);
+  border-color: transparent;
+}
+
+.char.selected {
+  background: var(--blue-bg);
+  color: var(--blue);
+  border: 2px solid var(--blue);
+}
+
+.char.draft:after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  position: absolute;
+  bottom: 6px;
+  left: calc(50% - 2px);
+}
+
+.canvas-area {
+  max-width: 480px;
+  margin: auto;
+}
+
+.canvas-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 15px;
+}
+
+.canvas-head strong {
+  color: var(--blue);
+}
+
+.paper {
+  position: relative;
+  aspect-ratio: 1;
+  background: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 7px 30px #0000000a;
+}
+
+.paper:before,
+.paper:after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.paper:before {
+  height: 100%;
+  left: 50%;
+  border-left: 1px dashed #dedede;
+}
+
+.paper:after {
+  width: 100%;
+  top: 50%;
+  border-top: 1px dashed #dedede;
+}
+
+.paper canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#guide {
+  position: absolute;
+  inset: 0;
+  color: #e9e9e9;
+  pointer-events: none;
+}
+
+#writing {
+  position: relative;
+  touch-action: none;
+  cursor: crosshair;
+  z-index: 1;
+}
+
+.pen-tools,
+.pressure-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pen-tools {
+  margin-top: 28px;
+}
+
+.pressure-tools {
+  margin-top: 14px;
+}
+
+.pen-tools label,
+.pressure-tools label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+input[type=range] {
+  accent-color: var(--blue);
+  width: 160px;
+}
+
+input[type=checkbox] {
+  accent-color: var(--blue);
+  width: 16px;
+  height: 16px;
+}
+
+output {
+  min-width: 22px;
+}
+
+input,
+textarea {
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--bg);
+  color: var(--ink);
+  padding: 12px;
+  font-size: 14px;
+}
+
+input[type=range],
+input[type=checkbox] {
+  padding: 0;
+}
+
+.editing-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.upload-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+  margin-top: 24px;
+}
+
+.upload-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 14px;
+  min-height: 18px;
+}
+
+.message {
+  font-size: 13px;
+  color: var(--blue);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  margin: 16px 0 0;
+}
+
+.message:empty {
+  display: none;
+}
+
+.message.error,
+.form-message.error {
+  color: var(--clear);
+}
+
+dialog {
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 28px;
+  width: min(520px, calc(100% - 32px));
+  max-height: 85vh;
+  overflow: auto;
+  box-shadow: 0 25px 90px #0003;
+}
+
+dialog::backdrop {
+  background: #0005;
+}
+
+.dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.close {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 28px;
+  padding: 0 4px;
+}
+
+form > label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 13px;
+  margin: 18px 0;
+}
+
+textarea {
+  resize: vertical;
+  width: 100%;
+  line-height: 1.8;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.dialog-actions .button {
+  font-size: 12px;
+  padding: 12px 16px;
+}
+
+.import-row {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.file-label {
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.hint,
+details {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+details summary {
+  cursor: pointer;
+}
+
+details p {
+  margin: 10px 0;
+}
+
+.form-message {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--blue);
+  margin: 14px 0 0;
+}
+
+.progress-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.progress-grid .char {
+  font-size: 23px;
+}
+
+.form-message:empty {
+  display: none;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@media (max-width:700px) {
+  .topbar {
+    padding: 18px 22px;
+  }
+
+  .brand {
+    font-size: 23px;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .header-actions .button {
+    padding: 10px 13px;
+    font-size: 11px;
+    min-height: 40px;
+  }
+
+  .header-actions svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  main {
+    padding: 22px 16px 30px;
+  }
+
+  .writing-card {
+    padding: 25px;
+    border-radius: 24px;
+  }
+
+  .characters {
+    gap: 8px;
+  }
+
+  .char {
+    font-size: 24px;
+  }
+
+  .canvas-area {
+    max-width: 440px;
+  }
+
+  .papers {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 23px;
+  }
+
+  .counter {
+    font-size: 14px;
+  }
+}
+
+@media (max-width:460px) {
+  .topbar {
+    padding: 15px 16px;
+    align-items: flex-start;
+  }
+
+  .brand {
+    font-size: 21px;
+    gap: 8px;
+  }
+
+  .brand > span {
+    width: 34px;
+    height: 34px;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .header-actions .button {
+    min-height: 30px;
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
+  .writing-card {
+    padding: 20px 16px;
+    border-radius: 22px;
+  }
+
+  .characters {
+    gap: 5px;
+    margin-bottom: 23px;
+  }
+
+  .char {
+    font-size: 21px;
+    border-radius: 8px;
+  }
+
+  #completion {
+    margin: 22px 0 18px;
+  }
+
+  .canvas-head {
+    font-size: 11px;
+  }
+
+  .paper {
+    border-radius: 13px;
+  }
+
+  .pen-tools,
+  .pressure-tools {
+    font-size: 11px;
+    gap: 8px;
+  }
+
+  .pen-tools label,
+  .pressure-tools label {
+    gap: 7px;
+  }
+
+  input[type=range] {
+    width: 105px;
+  }
+
+  .editing-actions {
+    gap: 7px;
+  }
+
+  .editing-actions .button {
+    font-size: 11px;
+    padding: 12px 11px;
+    min-height: 43px;
+  }
+
+  .upload-row .button {
+    font-size: 12px;
+    padding: 13px 15px;
+  }
+
+  .page-heading .button {
+    font-size: 12px;
+    padding: 12px 15px;
+  }
+
+  dialog {
+    padding: 23px;
+  }
+
+  .dialog-actions {
+    gap: 7px;
+  }
+
+  .counter {
+    font-size: 12px;
+  }
+
+  .editor-nav {
+    font-size: 11px;
+  }
+
+  .editor-nav .text-button {
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  * {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Compact, viewport-fitted writing workspace (desktop target: 75%). */
+body.writing-mode {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.writing-mode .topbar {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 900px;
+  padding: 6px 20px;
+  min-height: 58px;
+}
+
+.writing-mode .brand {
+  font-size: 22px;
+  min-height: 44px;
+}
+
+.writing-mode .brand > span {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+
+.writing-mode .header-actions {
+  flex-direction: row;
+  gap: 8px;
+}
+
+.writing-mode .header-actions .button {
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 12px;
+}
+
+.writing-mode main {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: 795px;
+  width: 100%;
+  padding: 8px 12px 12px;
+}
+
+.writing-mode #editor {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 32px minmax(0, 1fr);
+  gap: 6px;
+}
+
+.writing-mode .editor-nav {
+  margin: 0;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.writing-mode .editor-nav .text-button {
+  min-height: 32px;
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.writing-mode .writing-card {
+  min-height: 0;
+  padding: 18px;
+  border-radius: 23px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 4px auto minmax(156px, 1fr) auto;
+  gap: 8px;
+}
+
+.writing-mode .section-head h1 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+.writing-mode .counter {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.writing-mode #completion {
+  height: 4px;
+  margin: 0;
+}
+
+.writing-mode .characters {
+  position: relative;
+  grid-template-columns: repeat(8, minmax(44px, 1fr));
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  margin: 0;
+  padding: 2px;
+}
+
+.writing-mode .characters::-webkit-scrollbar {
+  display: none;
+}
+
+.writing-mode .characters .char {
+  aspect-ratio: auto;
+  height: 44px;
+  min-width: 44px;
+  font-size: 23px;
+  border-radius: 9px;
+}
+
+.writing-mode .canvas-area {
+  min-height: 0;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  display: grid;
+  grid-template-rows: 36px minmax(0, 1fr);
+  gap: 4px;
+}
+
+.writing-mode .canvas-head {
+  width: 100%;
+  max-width: 360px;
+  justify-self: center;
+  align-items: center;
+  font-size: 11px;
+  gap: 8px;
+  margin: 0;
+}
+
+.guide-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.writing-mode .canvas-slot {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.writing-mode .paper {
+  width: 100%;
+  max-width: 360px;
+  max-height: 100%;
+  flex: none;
+  border-radius: 14px;
+}
+
+.editor-controls {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.brush-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.brush-tools label {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.brush-tools input[type=range] {
+  width: 0;
+  min-width: 0;
+  flex: 1;
+  min-height: 44px;
+}
+
+.brush-tools output {
+  min-width: 22px;
+  font-size: 12px;
+}
+
+.writing-mode .editing-actions {
+  margin: 0;
+  gap: 8px;
+  min-width: 0;
+}
+
+.writing-mode .editing-actions .button,
+.writing-mode .upload-row .button {
+  min-height: 44px;
+  padding: 10px 15px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.writing-mode .upload-row {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.writing-mode .upload-meta {
+  font-size: 11px;
+  line-height: 16px;
+  min-height: 16px;
+  margin: 0;
+  gap: 5px;
+}
+
+.writing-mode .message {
+  flex: 0 0 auto;
+  font-size: 11px;
+  margin: 6px 0 0;
+  max-height: 42px;
+  overflow: auto;
+  line-height: 1.6;
+}
+
+/* Tablet/desktop and phone landscape: canvas beside the controls. */
+@media (min-width:700px), (min-width:540px) and (orientation:landscape) {
+  .writing-mode .writing-card {
+    grid-template-columns: minmax(0, 1.3fr) minmax(220px, 1fr);
+    grid-template-rows: auto 4px auto minmax(156px, 1fr);
+    column-gap: 22px;
+  }
+
+  .writing-mode .section-head,
+  .writing-mode #completion,
+  .writing-mode .characters {
+    grid-column: 1/-1;
+  }
+
+  .writing-mode .canvas-area {
+    grid-column: 1;
+    grid-row: 4;
+  }
+
+  .writing-mode .editor-controls {
+    grid-column: 2;
+    grid-row: 4;
+    gap: 12px;
+  }
+
+  .writing-mode .brush-tools {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .writing-mode .editing-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .writing-mode .editing-actions .spacer {
+    display: none;
+  }
+
+  .writing-mode .upload-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Compact phone header and safe areas; do not shrink touch targets. */
+@media (max-width:699px) {
+  .topbar {
+    padding: 8px 12px;
+    min-height: 58px;
+  }
+
+  .brand {
+    font-size: 21px;
+    min-height: 44px;
+    gap: 8px;
+  }
+
+  .brand > span {
+    width: 32px;
+    height: 32px;
+  }
+
+  .header-actions {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .header-actions .button {
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  #settings > span {
+    display: none;
+  }
+
+  #settings {
+    min-width: 44px;
+    position: relative;
+  }
+
+  #connection-dot {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 5px;
+    height: 5px;
+  }
+
+  .writing-mode .topbar {
+    padding: 4px 12px;
+    min-height: 54px;
+  }
+
+  .writing-mode .header-actions .button {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+
+  .writing-mode main {
+    padding: 4px 8px 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .writing-mode .writing-card {
+    padding: 12px;
+    gap: 6px;
+    border-radius: 19px;
+  }
+
+  .writing-mode .section-head h1 {
+    font-size: 18px;
+    line-height: 22px;
+  }
+
+  .writing-mode .editing-actions .button,
+  .writing-mode .upload-row .button {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  .writing-mode .canvas-head {
+    font-size: 11px;
+  }
+
+  .editor-controls {
+    gap: 6px;
+  }
+
+  .brush-tools {
+    gap: 10px;
+    font-size: 11px;
+  }
+
+  input,
+  textarea {
+    font-size: 16px;
+  }
+
+  dialog {
+    max-height: calc(100dvh - 24px);
+    padding: 20px;
+  }
+
+  .close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .progress-grid .char {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (orientation:landscape) and (max-height:560px) {
+  .writing-mode .topbar {
+    min-height: 48px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .writing-mode main {
+    padding-top: 2px;
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+
+  .writing-mode #editor {
+    grid-template-rows: 28px minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .writing-mode .writing-card {
+    padding: 8px 12px;
+    gap: 4px;
+    column-gap: 16px;
+    grid-template-rows: auto 4px auto minmax(120px, 1fr);
+  }
+
+  .writing-mode .section-head h1 {
+    font-size: 16px;
+    line-height: 20px;
+  }
+
+  .writing-mode .characters .char {
+    height: 44px;
+    font-size: 20px;
+  }
+
+  .writing-mode .canvas-area {
+    grid-template-rows: 30px minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .writing-mode .guide-toggle {
+    min-height: 30px;
+  }
+
+  .writing-mode .editor-controls {
+    gap: 4px;
+  }
+
+  .writing-mode .brush-tools {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .writing-mode .editing-actions {
+    gap: 4px;
+  }
+
+  .writing-mode .upload-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+
+  .writing-mode .editing-actions .button,
+  .writing-mode .upload-row .button {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .writing-mode .upload-meta {
+    font-size: 10px;
+    line-height: 14px;
+    min-height: 14px;
+  }
+}
+
+@supports (padding:max(0px)) {
+  .topbar {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+}
+
+@media (orientation:landscape) and (max-height:400px) {
+  .writing-mode .section-head {
+    display: none;
+  }
+
+  .writing-mode .writing-card {
+    grid-template-rows: 4px auto minmax(96px, 1fr);
+  }
+
+  .writing-mode .canvas-area,
+  .writing-mode .editor-controls {
+    grid-row: 3;
+  }
+
+  .writing-mode .editing-actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .writing-mode .editing-actions .button {
+    padding: 6px 2px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width:699px) {
+  .progress-grid {
+    grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+  }
+
+  .writing-mode main {
+    padding-left: max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+  }
+}
+
+.writing-mode .topbar {
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+}
+
+/* Paired writing boards share the existing InkTrace editor and color tokens. */
+@font-face {
+  font-family: InkTraceShoujin;
+  src: url("fonts/ShoujinTi_GBK.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.writing-mode .writing-card {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 4px auto minmax(168px, 1fr) auto;
+}
+
+.writing-mode .canvas-area {
+  grid-column: 1;
+  grid-row: 4;
+  grid-template-rows: 32px minmax(0, 1fr);
+}
+
+.writing-mode .canvas-head {
+  max-width: none;
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(8px, 2vw, 20px);
+  min-height: 0;
+}
+
+.board {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto 16px;
+  gap: 5px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.board-heading {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+  flex-wrap: wrap;
+}
+
+.board-heading h2 {
+  font-size: 15px;
+}
+
+.board-heading span,
+.board-link {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.guide-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.writing-canvas {
+  position: relative;
+  touch-action: none;
+  cursor: crosshair;
+  z-index: 1;
+}
+
+.board-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.board-actions .button {
+  min-height: 44px;
+  padding: 6px 3px;
+  white-space: nowrap;
+  font-size: 12px;
+  border-radius: 12px;
+}
+
+.board-link {
+  color: var(--blue);
+}
+
+.writing-mode .editor-controls {
+  grid-column: 1;
+  grid-row: 5;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 14px;
+}
+
+.writing-mode .brush-tools {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pair-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.pair-actions .button {
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.writing-mode .upload-meta {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 620px) {
+  .writing-mode .editor-controls {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .board-heading h2 {
+    font-size: 14px;
+  }
+
+  .board-heading span {
+    font-size: 10px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) and (min-width: 600px) {
+  .writing-mode .writing-card {
+    grid-template-columns: minmax(0, 1fr) minmax(160px, .36fr);
+    grid-template-rows: auto 4px auto minmax(176px, 1fr);
+  }
+
+  .writing-mode .canvas-area {
+    grid-template-rows: 26px minmax(0, 1fr);
+  }
+
+  .writing-mode .editor-controls {
+    grid-column: 2;
+    grid-row: 4;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .writing-mode .brush-tools {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .pair-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 400px) {
+  .writing-mode .section-head {
+    display: none;
+  }
+
+  .writing-mode .writing-card {
+    grid-template-rows: 4px auto minmax(176px, 1fr) auto;
+  }
+
+  .writing-mode .canvas-area {
+    grid-row: 3;
+  }
+
+  .writing-mode .editor-controls {
+    grid-row: 4;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 400px) and (min-width: 600px) {
+  .writing-mode .writing-card {
+    grid-template-rows: 4px auto minmax(176px, 1fr);
+  }
+
+  .writing-mode .editor-controls {
+    grid-row: 3;
+  }
+}

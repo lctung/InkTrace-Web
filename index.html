@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="InkTrace 網頁版：手寫稿紙、SVG 匯出與 GitHub 上傳。">
+    <title>InkTrace 網頁版</title>
+    <link rel="stylesheet" href="style.css">
+    <script defer src="core.js"></script>
+    <script defer src="store.js"></script>
+    <script defer src="github.js"></script>
+    <script defer src="fonts/shoujin-coverage.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#"><span>字</span> InkTrace</a>
+      <div class="header-actions">
+        <button id="theme" class="button outline">主題：系統</button>
+        <button id="settings" class="button outline" title="GitHub 設定" aria-label="GitHub 設定">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg><span>GitHub 設定</span>
+          <i id="connection-dot" aria-label="尚未設定">
+          </i>
+        </button>
+      </div>
+    </header>
+    <main>
+      <section id="home" aria-labelledby="home-title">
+        <div class="page-heading">
+          <h1 id="home-title">稿紙</h1>
+          <button id="add-paper" class="button primary">＋ 新增稿紙</button>
+        </div>
+        <label class="search-label">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="10" cy="10" r="6" />
+            <path d="m15 15 5 5" />
+          </svg>
+          <input id="search" placeholder="搜尋稿紙" aria-label="搜尋稿紙">
+        </label>
+        <div id="papers" class="papers">
+        </div>
+        <p id="empty" class="empty" hidden>尚無稿紙</p>
+      </section>
+      <section id="editor" hidden aria-labelledby="paper-title">
+        <div class="editor-nav">
+          <button id="back" class="text-button">← 稿紙</button><span id="paper-name"></span>
+          <button id="view-progress" class="text-button">查看進度</button>
+        </div>
+        <section class="writing-card">
+          <div class="section-head">
+            <h1 id="paper-title">手寫稿紙</h1><span id="counter" class="counter">0 / 8 已完成</span>
+          </div>
+          <progress id="completion" max="8" value="0" aria-label="已上傳進度">
+          </progress>
+          <div id="characters" class="characters" aria-label="選擇字元">
+          </div>
+          <div class="canvas-area">
+            <div class="canvas-head"><span>字元：<strong id="target">天</strong></span><span
+                id="position">第 1 / 8 字</span>
+              <label class="guide-toggle">
+                <input id="show-guide" type="checkbox" checked> 提示</label>
+            </div>
+            <div class="board-grid">
+              <section class="board" data-board="regular" aria-labelledby="regular-title">
+                <div class="board-heading">
+                  <h2 id="regular-title">工整</h2><span>思源黑體 Thin 100</span>
+                </div>
+                <div class="canvas-slot">
+                  <div class="paper">
+                    <canvas class="guide-canvas" width="1000" height="1000" aria-hidden="true">
+                    </canvas>
+                    <canvas class="writing-canvas" width="1000" height="1000" aria-label="工整手寫畫布">
+                    </canvas>
+                  </div>
+                </div>
+                <div class="board-actions">
+                  <button class="button undo" data-action="undo">復原</button>
+                  <button class="button clear" data-action="clear">清除</button>
+                  <button class="button outline" data-action="download" aria-label="下載工整 SVG">SVG
+                    ↓</button>
+                </div>
+                <a class="board-link" target="_blank" rel="noopener noreferrer" hidden>查看工整 SVG
+                  ↗</a>
+              </section>
+              <section class="board" data-board="rough" aria-labelledby="rough-title">
+                <div class="board-heading">
+                  <h2 id="rough-title">潦草</h2><span>方正瘦金書 GBK</span>
+                </div>
+                <div class="canvas-slot">
+                  <div class="paper">
+                    <canvas class="guide-canvas" width="1000" height="1000" aria-hidden="true">
+                    </canvas>
+                    <canvas class="writing-canvas" width="1000" height="1000" aria-label="潦草手寫畫布">
+                    </canvas>
+                  </div>
+                </div>
+                <div class="board-actions">
+                  <button class="button undo" data-action="undo">復原</button>
+                  <button class="button clear" data-action="clear">清除</button>
+                  <button class="button outline" data-action="download" aria-label="下載潦草 SVG">SVG
+                    ↓</button>
+                </div>
+                <a class="board-link" target="_blank" rel="noopener noreferrer" hidden>查看潦草 SVG
+                  ↗</a>
+              </section>
+            </div>
+          </div>
+          <div class="editor-controls">
+            <div class="brush-tools">
+              <label>粗細 <input id="width" type="range" min="1" max="24" value="12"><output
+                  id="width-value">12</output>
+              </label>
+              <label>筆壓 <input id="pressure" type="range" min="0" max="100" value="0"><output
+                  id="pressure-value">0</output>
+              </label>
+            </div>
+            <div class="pair-actions">
+              <button id="prev" class="button outline" aria-label="上一字">←</button>
+              <button id="upload" class="button primary">上傳
+                GitHub</button>
+              <button id="next" class="button secondary">下一字 →</button>
+            </div>
+            <div class="upload-meta"><span id="draft-state"></span>
+            </div>
+          </div>
+        </section>
+      </section>
+      <p id="message" class="message" role="status" aria-live="polite">
+      </p>
+    </main>
+    <dialog id="paper-dialog">
+      <form id="paper-form">
+        <div class="dialog-heading">
+          <h2 id="paper-dialog-title">新增稿紙</h2>
+          <button type="button" class="close" data-close="paper-dialog" aria-label="關閉">×</button>
+        </div>
+        <label>名稱<input id="new-title" maxlength="80" required placeholder="例如：千字文">
+        </label>
+        <label id="text-label">書寫內容<textarea id="new-text" rows="6" required placeholder="天地玄黃宇宙洪荒">
+          </textarea>
+        </label>
+        <div id="import-row" class="import-row">
+          <label class="button secondary file-label">匯入
+            TXT<input id="text-file" type="file" accept=".txt,text/plain" hidden>
+          </label>
+          <button id="paste-json" type="button" class="text-button">貼上稿紙 JSON</button>
+        </div>
+        <p id="paper-form-error" class="form-message" role="status">
+        </p>
+        <div class="dialog-actions">
+          <button type="button" class="button outline" data-close="paper-dialog">取消</button>
+          <button type="submit" class="button primary">儲存</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="settings-dialog">
+      <form id="settings-form">
+        <div class="dialog-heading">
+          <h2>GitHub 設定</h2>
+          <button type="button" class="close" data-close="settings-dialog"
+            aria-label="關閉">×</button>
+        </div>
+        <label>帳號名稱<input id="owner" autocomplete="off" required placeholder="Owner">
+        </label>
+        <label>倉庫名稱<input id="repo" autocomplete="off" required placeholder="Repository">
+        </label>
+        <label>Personal Access Token<input id="token" type="password" autocomplete="off"
+            spellcheck="false" placeholder="github_pat_…">
+        </label>
+        <p class="hint">main 分支 · Contents 讀寫權限<br>Token 保存在目前頁面的記憶體，重新整理後需重新輸入。</p>
+        <details>
+          <summary>設定方式</summary>
+          <p>先建立含 README 的 GitHub 倉庫，再建立 fine-grained token，選擇該倉庫並授予 Contents「Read and
+            write」。同名稿紙、同字上傳會更新原檔。</p>
+          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank"
+            rel="noopener noreferrer">建立 Token ↗</a>
+        </details>
+        <p id="settings-status" class="form-message" role="status">
+        </p>
+        <div class="dialog-actions">
+          <button id="clear-settings" type="button" class="button clear">清除設定</button>
+          <button id="check" type="button" class="button outline">測試連線</button>
+          <button type="submit" class="button primary">儲存</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="progress-dialog">
+      <div class="dialog-heading">
+        <h2>書寫進度</h2>
+        <button type="button" class="close" data-close="progress-dialog" aria-label="關閉">×</button>
+      </div>
+      <p class="hint">藍色：目前字元 · 綠色：已上傳 · 圓點：有草稿</p>
+      <div id="progress-grid" class="progress-grid">
+      </div>
+    </dialog>
+    <dialog id="json-dialog">
+      <form id="json-form">
+        <div class="dialog-heading">
+          <h2>貼上稿紙 JSON</h2>
+          <button type="button" class="close" data-close="json-dialog" aria-label="關閉">×</button>
+        </div>
+        <textarea id="json-input" rows="7" aria-label="稿紙 JSON"
+          placeholder='{"title":"測試稿紙","text":"天地玄黃宇宙洪荒"}'>
+        </textarea>
+        <p id="json-error" class="form-message" role="status">
+        </p>
+        <div class="dialog-actions">
+          <button type="submit" class="button primary">套用</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+
+</html>
