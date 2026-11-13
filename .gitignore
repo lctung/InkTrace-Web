@@ -1,4 +1,21 @@
+# Keep the local copy of the Founder font out of Git.
+ShoujinTi_GBK.ttf
+
+# Extracted deployment copy and archive
+/inktrace-web/
+/inktrace-web.zip
+
+# Python-generated files and local logs
 __pycache__/
 *.pyc
-.env
 *.log
+*.py
+
+# Local environment variables and credentials
+.env
+.env.*
+!.env.example
+
+# 
+ARCHITECTURE.md
+LETMEKNOW.md
