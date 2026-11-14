@@ -3,6 +3,8 @@
 
   const getElement = id => document.getElementById(id);
   const inkTrace = InkTrace;
+  const MAX_BOARD_SIZE = 300;
+  const MIN_SAMPLE_DISTANCE = 0.4;
   const SHOUJIN_GUIDE_FONT = '400 100px InkTraceShoujin';
 
   const boards = Array.from(document.querySelectorAll('[data-board]'), element => {
@@ -21,6 +23,10 @@
       buttons: Array.from(element.querySelectorAll('[data-action]')),
       link: element.querySelector('.board-link'),
       pointer: null,
+      pointerType: '',
+      strokeRect: null,
+      frame: 0,
+      drawnPoints: 0,
       line: null,
       points: 0,
     };
@@ -30,6 +36,14 @@
   let characterIndex = 0;
   let isUploading = false;
   let editingPaperId = null;
+  let penDetected = false;
+  let allowFinger = false;
+  let characterListPaper = null;
+  let characterListStart = -1;
+  let characterListIndex = -1;
+  let completedCount = 0;
+  let countedIndex = -1;
+  let countedAsComplete = false;
   let shoujinFontLoaded = false;
   let githubSettings = {
     configured: false,
@@ -47,6 +61,44 @@
   const getBoardStrokes = board => getCurrentDraft()[board.fields.strokes] ||= [];
   const hasInk = entry => Boolean(entry?.strokes?.length || entry?.roughStrokes?.length);
   const isDrawing = () => boards.some(board => board.pointer !== null);
+  const editor = getElement('editor');
+  const penInput = getElement('pen-input');
+  const inputStatus = getElement('input-status');
+
+  function updateInputMode() {
+    const penOnly = penDetected && !allowFinger;
+    penInput.checked = penOnly;
+    inputStatus.textContent = penOnly ? '防誤觸已開啟' : '';
+  }
+
+  function recognizePen(event) {
+    if (event.pointerType !== 'pen' || penDetected) {
+      return;
+    }
+    penDetected = true;
+    updateInputMode();
+    if (!allowFinger) {
+      for (const board of boards) {
+        if (board.pointerType === 'touch') {
+          discardPalmStroke(board);
+        }
+      }
+    }
+  }
+
+  penInput.onchange = () => {
+    penDetected ||= penInput.checked;
+    allowFinger = !penInput.checked;
+    updateInputMode();
+    if (penInput.checked) {
+      for (const board of boards) {
+        if (board.pointerType === 'touch') {
+          discardPalmStroke(board);
+        }
+      }
+    }
+  };
+
   const showMessage = (text, error = false) => {
     getElement('message').textContent = text;
     getElement('message').classList.toggle('error', error);
@@ -64,6 +116,18 @@
       await PaperStore.put(p);
     } catch (e) {
       showMessage(e.message, true);
+    }
+  }
+
+  async function saveCurrentDraft() {
+    const draft = activePaper?.drafts[characterIndex];
+    if (!draft) {
+      return;
+    }
+    try {
+      await PaperStore.putDraft(activePaper.id, characterIndex, draft);
+    } catch (error) {
+      showMessage(error.message, true);
     }
   }
 
@@ -137,73 +201,120 @@
     getElement('empty').textContent = query ? '找不到稿紙' : '尚無稿紙';
   }
 
-  function createCharacterButton(i) {
-    const b = document.createElement('button');
-    b.className = 'char';
-    b.textContent = activePaper.chars[i];
-    b.classList.toggle('selected', i === characterIndex);
-    const done = inkTrace.pairDone(activePaper, i, getUploadDestination());
-    b.classList.toggle('done', done);
-    b.classList.toggle('draft', hasInk(activePaper.drafts[i]) && !done);
-    b.disabled = isUploading;
-    b.setAttribute('aria-pressed', String(i === characterIndex));
-    b.setAttribute('aria-label', `${activePaper.chars[i]}，第 ${i + 1} 字，${done ? '已上傳' : hasInk(activePaper.drafts[i]) ? '有草稿' : '未寫'}`);
-    b.onclick = () => {
-      selectCharacter(i);
-      getElement('progress-dialog').close();
-    };
-    return b;
+  function updateCharacterButton(button, index) {
+    const done = inkTrace.pairDone(activePaper, index, getUploadDestination());
+    const hasDraft = hasInk(activePaper.drafts[index]);
+    const selected = index === characterIndex;
+    button.classList.toggle('selected', selected);
+    button.classList.toggle('done', done);
+    button.classList.toggle('draft', hasDraft && !done);
+    button.disabled = isUploading;
+    button.setAttribute('aria-pressed', String(selected));
+    const status = done ? '已上傳' : hasDraft ? '有草稿' : '未寫';
+    button.setAttribute('aria-label', `${activePaper.chars[index]}，第 ${index + 1} 字，${status}`);
   }
 
-  function renderEditor() {
-    if (!activePaper) {
-      return;
+  function createCharacterButton(index) {
+    const button = document.createElement('button');
+    button.className = 'char';
+    button.textContent = activePaper.chars[index];
+    updateCharacterButton(button, index);
+    button.onclick = () => {
+      selectCharacter(index);
+      getElement('progress-dialog').close();
+    };
+    return button;
+  }
+
+  function refreshCompletedCount() {
+    completedCount = inkTrace.count(activePaper, getUploadDestination());
+    countedIndex = characterIndex;
+    countedAsComplete = inkTrace.pairDone(activePaper, characterIndex, getUploadDestination());
+  }
+
+  function updateEditorControls() {
+    const complete = inkTrace.pairDone(activePaper, characterIndex, getUploadDestination());
+    if (countedIndex === characterIndex) {
+      completedCount += Number(complete) - Number(countedAsComplete);
     }
-    const completed = inkTrace.count(activePaper, getUploadDestination());
-    getElement('counter').textContent = `${completed} / ${activePaper.chars.length} 已完成`;
-    getElement('completion').max = activePaper.chars.length;
-    getElement('completion').value = completed;
-    getElement('paper-name').textContent = activePaper.title;
-    getElement('target').textContent = activePaper.chars[characterIndex];
-    getElement('position').textContent = `第 ${characterIndex + 1} / ${activePaper.chars.length} 字`;
-    getElement('characters').replaceChildren();
+    countedIndex = characterIndex;
+    countedAsComplete = complete;
+    getElement('counter').textContent = `${completedCount} / ${activePaper.chars.length} 已完成`;
+    getElement('completion').value = completedCount;
+
+    const row = getElement('characters');
     const start = Math.floor(characterIndex / 8) * 8;
-    for (let i = start; i < Math.min(start + 8, activePaper.chars.length); i++) {
-      getElement('characters').append(createCharacterButton(i));
-    }
-    requestAnimationFrame(() => {
-      const row = getElement('characters');
-      const selected = row.querySelector('.selected');
-      if (selected) {
-        row.scrollLeft = Math.max(0, selected.offsetLeft - (row.clientWidth - selected.offsetWidth) / 2);
+    if (characterListPaper !== activePaper || characterListStart !== start) {
+      row.replaceChildren();
+      for (let index = start; index < Math.min(start + 8, activePaper.chars.length); index++) {
+        row.append(createCharacterButton(index));
       }
-    });
+      characterListPaper = activePaper;
+      characterListStart = start;
+      characterListIndex = -1;
+    } else {
+      Array.from(row.children).forEach((button, index) => updateCharacterButton(button, start + index));
+    }
+    if (characterListIndex !== characterIndex) {
+      characterListIndex = characterIndex;
+      const selected = row.children[characterIndex - start];
+      row.scrollLeft = Math.max(0, selected.offsetLeft - (row.clientWidth - selected.offsetWidth) / 2);
+    }
+
     let uploaded = 0;
     let pendingUpload = false;
     for (const board of boards) {
-      const complete = inkTrace.done(activePaper, characterIndex, getUploadDestination(), board.side);
-      if (complete) {
+      const boardComplete = inkTrace.done(activePaper, characterIndex, getUploadDestination(), board.side);
+      if (boardComplete) {
         uploaded++;
       }
       const hasStrokes = getBoardStrokes(board).length > 0;
-      pendingUpload ||= hasStrokes && !complete;
+      pendingUpload ||= hasStrokes && !boardComplete;
       for (const button of board.buttons) {
-        button.disabled = isUploading || isDrawing() || !hasStrokes;
+        button.disabled = isUploading || !hasStrokes;
       }
-      board.link.hidden = !complete;
-      if (complete) {
+      board.link.hidden = !boardComplete;
+      if (boardComplete) {
         board.link.href = getCurrentDraft()[board.fields.upload].url;
       }
-      drawStrokes(board);
     }
     getElement('prev').disabled = isUploading || characterIndex === 0;
     getElement('next').disabled = isUploading || characterIndex === activePaper.chars.length - 1;
     for (const id of ['back', 'view-progress', 'settings', 'add-paper']) {
       getElement(id).disabled = isUploading;
     }
-    getElement('upload').disabled = isUploading || isDrawing() || !pendingUpload;
-    getElement('draft-state').textContent = uploaded ? `${uploaded} / 2 份筆跡已上傳` : hasInk(getCurrentDraft()) ? '草稿 · 尚未上傳' : '';
+    getElement('upload').disabled = isUploading || !pendingUpload;
+    getElement('draft-state').textContent = uploaded
+      ? `${uploaded} / 2 份筆跡已上傳`
+      : hasInk(getCurrentDraft()) ? '草稿 · 尚未上傳' : '';
+  }
+
+  function renderEditor() {
+    if (!activePaper) {
+      return;
+    }
+    getElement('completion').max = activePaper.chars.length;
+    getElement('paper-name').textContent = activePaper.title;
+    getElement('target').textContent = activePaper.chars[characterIndex];
+    getElement('position').textContent = `第 ${characterIndex + 1} / ${activePaper.chars.length} 字`;
+    updateEditorControls();
+    for (const board of boards) {
+      drawStrokes(board);
+    }
     fitCanvas();
+  }
+
+  function drawSample(context, point, previous) {
+    if (previous) {
+      context.lineWidth = (previous.width + point.width) / 2;
+      context.beginPath();
+      context.moveTo(previous.x, previous.y);
+      context.lineTo(point.x, point.y);
+      context.stroke();
+    }
+    context.beginPath();
+    context.arc(point.x, point.y, point.width / 2, 0, Math.PI * 2);
+    context.fill();
   }
 
   function drawStrokes(board) {
@@ -213,20 +324,33 @@
     ctx.fillStyle = ctx.strokeStyle = '#111';
     ctx.lineCap = ctx.lineJoin = 'round';
     for (const line of getBoardStrokes(board)) {
-      let previous;
-      for (const point of line) {
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, point.width / 2, 0, Math.PI * 2);
-        ctx.fill();
-        if (previous) {
-          ctx.lineWidth = (previous.width + point.width) / 2;
-          ctx.beginPath();
-          ctx.moveTo(previous.x, previous.y);
-          ctx.lineTo(point.x, point.y);
-          ctx.stroke();
-        }
-        previous = point;
+      for (let index = 0; index < line.length; index++) {
+        drawSample(ctx, line[index], line[index - 1]);
       }
+    }
+    board.drawnPoints = board.line?.length || 0;
+  }
+
+  function drawPendingSamples(board) {
+    if (board.frame) {
+      cancelAnimationFrame(board.frame);
+      board.frame = 0;
+    }
+    if (!board.line) {
+      return;
+    }
+    for (let index = board.drawnPoints; index < board.line.length; index++) {
+      drawSample(board.ctx, board.line[index], board.line[index - 1]);
+    }
+    board.drawnPoints = board.line.length;
+  }
+
+  function scheduleSamples(board) {
+    if (!board.frame) {
+      board.frame = requestAnimationFrame(() => {
+        board.frame = 0;
+        drawPendingSamples(board);
+      });
     }
   }
 
@@ -274,6 +398,7 @@
   function openPaper(id) {
     activePaper = papers.find(p => p.id === id);
     characterIndex = Math.min(activePaper.selected || 0, activePaper.chars.length - 1);
+    refreshCompletedCount();
     getElement('home').hidden = true;
     getElement('editor').hidden = false;
     document.body.classList.add('writing-mode');
@@ -284,7 +409,7 @@
   }
 
   function readPointerPoint(board, event, release = false) {
-    const rect = board.canvas.getBoundingClientRect();
+    const rect = board.strokeRect;
     const previous = board.line?.at(-1);
     const width = release && previous ? previous.width : inkTrace.width(
       Number(getElement('width').value),
@@ -299,18 +424,42 @@
     };
   }
 
-  function finishStroke(board) {
+  function releaseStroke(board) {
     const pointer = board.pointer;
-    if (pointer === null) {
-      return;
-    }
     board.line = null;
     board.pointer = null;
+    board.pointerType = '';
+    board.strokeRect = null;
     if (board.canvas.hasPointerCapture(pointer)) {
       board.canvas.releasePointerCapture(pointer);
     }
-    savePaper();
-    renderEditor();
+  }
+
+  function discardPalmStroke(board) {
+    if (board.frame) {
+      cancelAnimationFrame(board.frame);
+      board.frame = 0;
+    }
+    const lines = getBoardStrokes(board);
+    const index = lines.indexOf(board.line);
+    if (index !== -1) {
+      lines.splice(index, 1);
+    }
+    releaseStroke(board);
+    drawStrokes(board);
+    saveCurrentDraft();
+    updateEditorControls();
+  }
+
+  function finishStroke(board) {
+    if (board.pointer === null) {
+      return;
+    }
+    drawPendingSamples(board);
+    releaseStroke(board);
+    saveCurrentDraft();
+    updateEditorControls();
+    fitCanvas();
   }
 
   function finishAllStrokes() {
@@ -334,63 +483,101 @@
   for (const board of boards) {
     const { canvas } = board;
     canvas.addEventListener('pointerdown', event => {
-      if (!activePaper || isUploading || board.pointer !== null || event.button !== 0) {
+      if (!activePaper || isUploading) {
         return;
       }
-      event.preventDefault();
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      recognizePen(event);
+      if (
+        (event.button !== 0 && !(event.pointerType === 'pen' && event.button === -1)) ||
+        (event.pointerType === 'touch' && penDetected && !allowFinger)
+      ) {
+        return;
+      }
+      if (event.pointerType === 'pen') {
+        for (const otherBoard of boards) {
+          if (otherBoard.pointerType === 'pen') {
+            finishStroke(otherBoard);
+          }
+        }
+      }
+      if (board.pointer !== null) {
+        return;
+      }
+
       const lines = getBoardStrokes(board);
       board.points = lines.reduce((count, line) => count + line.length, 0);
       if (lines.length >= 1000 || board.points >= 20000) {
         showMessage('筆跡達上限，請復原或清除部分筆畫。', true);
         return;
       }
-      canvas.setPointerCapture(event.pointerId);
+
+      board.strokeRect = canvas.getBoundingClientRect();
       board.pointer = event.pointerId;
+      board.pointerType = event.pointerType;
+      board.drawnPoints = 0;
       board.line = [readPointerPoint(board, event)];
       board.points++;
       lines.push(board.line);
-      renderEditor();
+      try {
+        canvas.setPointerCapture(event.pointerId);
+      } catch {
+        // Window listeners can finish the stroke if capture is unavailable.
+      }
+      drawPendingSamples(board);
       showMessage('');
     });
-    canvas.addEventListener('pointermove', event => {
+
+    window.addEventListener('pointermove', event => {
       if (event.pointerId !== board.pointer) {
         return;
       }
-      event.preventDefault();
-      const next = readPointerPoint(board, event);
-      const last = board.line.at(-1);
-      if (Math.hypot(next.x - last.x, next.y - last.y) < 1) {
-        return;
+      if (event.cancelable) {
+        event.preventDefault();
       }
-      if (board.points >= 20000) {
-        finishStroke(board);
-        showMessage('筆跡達上限，請減少筆畫。', true);
-        return;
+      const samples = event.getCoalescedEvents?.();
+      for (const sample of samples?.length ? samples : [event]) {
+        const next = readPointerPoint(board, sample);
+        const last = board.line.at(-1);
+        if (Math.hypot(next.x - last.x, next.y - last.y) < MIN_SAMPLE_DISTANCE) {
+          continue;
+        }
+        if (board.points >= 20000) {
+          finishStroke(board);
+          showMessage('筆跡達上限，請減少筆畫。', true);
+          return;
+        }
+        board.line.push(next);
+        board.points++;
       }
-      board.line.push(next);
-      board.points++;
-      drawStrokes(board);
-    });
-    canvas.addEventListener('pointerup', event => {
+      scheduleSamples(board);
+    }, { passive: false });
+
+    window.addEventListener('pointerup', event => {
       if (event.pointerId !== board.pointer) {
         return;
       }
       const next = readPointerPoint(board, event, true);
       const last = board.line.at(-1);
-      if (board.points < 20000 && Math.hypot(next.x - last.x, next.y - last.y) > .2) {
+      if (board.points < 20000 && Math.hypot(next.x - last.x, next.y - last.y) > 0.2) {
         board.line.push(next);
       }
       finishStroke(board);
     });
+
     for (const type of ['pointercancel', 'lostpointercapture']) {
-      canvas.addEventListener(type, event => {
+      window.addEventListener(type, event => {
         if (event.pointerId === board.pointer) {
           finishStroke(board);
         }
       });
     }
+
     for (const button of board.buttons) {
       button.onclick = () => {
+        finishAllStrokes();
         const action = button.dataset.action;
         if (action === 'download') {
           return download(board);
@@ -401,8 +588,9 @@
         else {
           getCurrentDraft()[board.fields.strokes] = [];
         }
-        savePaper();
-        renderEditor();
+        saveCurrentDraft();
+        drawStrokes(board);
+        updateEditorControls();
         showMessage('');
       };
     }
@@ -434,6 +622,50 @@
     renderHome();
     showMessage('');
   };
+
+  function enablePenTap(button) {
+    const activate = button.onclick;
+    let penDown = null;
+    let handledPenUp = -Infinity;
+
+    button.addEventListener('pointerdown', event => {
+      handledPenUp = -Infinity;
+      penDown = event.pointerType === 'pen' && !button.disabled
+        ? { id: event.pointerId, x: event.clientX, y: event.clientY }
+        : null;
+    });
+    button.addEventListener('pointercancel', () => { penDown = null; });
+    button.addEventListener('pointerleave', () => { penDown = null; });
+    button.addEventListener('pointerup', event => {
+      const start = penDown;
+      penDown = null;
+      if (
+        !start || event.pointerType !== 'pen' || event.pointerId !== start.id ||
+        button.disabled || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 12
+      ) {
+        return;
+      }
+      handledPenUp = event.timeStamp;
+      activate.call(button, event);
+    });
+    button.onclick = event => {
+      const elapsed = event.timeStamp - handledPenUp;
+      if ((event.pointerType === 'pen' || event.detail > 0) && elapsed >= 0 && elapsed < 450) {
+        handledPenUp = -Infinity;
+        return;
+      }
+      activate.call(button, event);
+    };
+  }
+
+  for (const id of ['back', 'prev', 'next']) {
+    enablePenTap(getElement(id));
+  }
+  for (const board of boards) {
+    for (const button of board.buttons.filter(button => button.dataset.action !== 'download')) {
+      enablePenTap(button);
+    }
+  }
   getElement('search').oninput = renderHome;
   getElement('view-progress').onclick = () => {
     getElement('progress-grid').replaceChildren();
@@ -443,9 +675,10 @@
     getElement('progress-dialog').showModal();
   };
   getElement('upload').onclick = async () => {
-    if (isUploading || isDrawing() || !activePaper) {
+    if (isUploading || !activePaper) {
       return;
     }
+    finishAllStrokes();
     if (!githubSettings.configured) {
       showSettings();
       showSettingsMessage('請先儲存 GitHub 設定。');
@@ -480,7 +713,7 @@
           destination: getUploadDestination(),
           at: Date.now(),
         };
-        await savePaper();
+        await saveCurrentDraft();
       }
       showMessage('已上傳。');
     } catch (error) {
@@ -577,7 +810,10 @@
       }
     } catch (_) { }
     renderHome();
-    renderEditor();
+    if (activePaper) {
+      refreshCompletedCount();
+      updateEditorControls();
+    }
   }
 
   function showSettings() {
@@ -646,7 +882,7 @@
       if (!activePaper || isDrawing()) {
         return;
       }
-      const side = Math.max(0, Math.floor(Math.min(360, ...boards.flatMap(board => {
+      const side = Math.max(0, Math.floor(Math.min(MAX_BOARD_SIZE, ...boards.flatMap(board => {
         const rect = board.slot.getBoundingClientRect();
         return [rect.width, rect.height];
       }))));
@@ -662,10 +898,19 @@
       observer.observe(board.slot);
     }
   }
-  window.addEventListener('resize', () => {
-    finishAllStrokes();
-    fitCanvas();
+  window.addEventListener('resize', fitCanvas);
+  window.addEventListener('blur', finishAllStrokes);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      finishAllStrokes();
+    }
   });
+
+  editor.addEventListener('pointerover', recognizePen, true);
+  editor.addEventListener('pointerdown', recognizePen, true);
+  for (const type of ['selectstart', 'contextmenu', 'dragstart']) {
+    editor.addEventListener(type, event => event.preventDefault());
+  }
   window.visualViewport?.addEventListener('resize', fitCanvas);
   for (const b of document.querySelectorAll('[data-close]')) {
     b.onclick = () => getElement(b.dataset.close).close();
